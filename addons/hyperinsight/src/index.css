@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Theme variables are pushed live by mosaic-companion's addon-preload (§4.3)
+ * via `theme:changed` — this addon never hardcodes colors, it reads the
+ * documented variable names (see mosaic-companion's src/theme.css):
+ * --background, --surface, --surfaceAlt, --border, --text, --textMuted,
+ * --primary, --primaryStrong, --accent, --muted, --success, --warning,
+ * --danger, --highlight, --selection, --code, --shadow.
+ * Fallback values below only matter before the first theme:changed push.
+ */
+:root {
+  --background: #0b1220;
+  --surface: #0f172a;
+  --surfaceAlt: #111827;
+  --border: #1f2937;
+  --text: #e6eef8;
+  --textMuted: #94a3b8;
+  --primary: #60a5fa;
+  --primaryStrong: #3b82f6;
+  --accent: #7c3aed;
+  --muted: #475569;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --overlay: rgba(11, 18, 32, 0.75);
+  /* Not one of mosaic-companion's real theme tokens (shared/theme-tokens.ts)
+     — a couple of ported components reference it for a button hover state.
+     Falls back to --primaryStrong so it's never literally undefined. */
+  --primaryAlt: var(--primaryStrong);
+}
+
+body {
+  background: var(--background);
+  color: var(--text);
+}
