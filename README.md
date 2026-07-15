@@ -91,6 +91,7 @@ material to sign anything that ships to a real user.**
 mosaic-addons/
   addons/
     stargate/            — the Stargate addon (manifest, main, renderer source + build)
+    hyperinsight/        — the HyperInsight addon (manifest, main, renderer source + build)
   scripts/
     generate-signing-key.cjs   — one-off key generation (test or real, same procedure)
     build-addon.mjs            — builds one addon's renderer, tars manifest+main+renderer
@@ -105,22 +106,31 @@ mosaic-addons/
 ## Building an addon locally
 
 ```bash
-cd addons/stargate
+cd addons/<stargate|hyperinsight>
 npm install
-npm run build          # produces addons/stargate/renderer/ (self-contained static bundle)
+npm run build          # produces addons/<id>/renderer/ (self-contained static bundle)
 ```
 
 ## Building + signing a full registry locally (test key)
 
 ```bash
 node scripts/build-addon.mjs stargate
+node scripts/build-addon.mjs hyperinsight
 node scripts/build-registry.mjs --out release-build
 node scripts/sign-registry.mjs --key fixtures/test-signing-key.json --registry release-build/addon-registry.json
 ```
 
-This produces `release-build/addon-registry.json`,
-`release-build/addon-registry.json.sig`, and
-`release-build/stargate-<version>.tgz` + its sha256 — the same shape a real
-GitHub Release would publish, servable from a local static file server (or
-`file://`, for `mosaic-companion`'s dev-install/test-registry paths) for
+`build-registry.mjs` picks up every addon under `addons/` that already has a
+built tarball in `--out` — run `build-addon.mjs` for each addon you want
+included first. This produces `release-build/addon-registry.json`,
+`release-build/addon-registry.json.sig`, and one
+`release-build/<id>-<version>.tgz` + its sha256 per addon — the same shape a
+real GitHub Release would publish, servable from a local static file server
+(or `file://`, for `mosaic-companion`'s dev-install/test-registry paths) for
 fully offline testing.
+
+`hyperinsight` additionally has its own `main/index.js` (§9.2) — it's the
+only addon in this repo with main-process code, and `main/package.json`
+(`{ "type": "module" }`) exists specifically so Node resolves it as ESM once
+installed, since `build-addon.mjs` does not copy the addon's own root
+`package.json` into the tarball.
