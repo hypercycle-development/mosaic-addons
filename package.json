@@ -1,0 +1,15 @@
+{
+  "name": "mosaic-addons",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Addon monorepo for Mosaic Companion's manifest-driven addon system.",
+  "type": "module",
+  "scripts": {
+    "build:addon": "node scripts/build-addon.mjs",
+    "build:registry": "node scripts/build-registry.mjs",
+    "sign:registry": "node scripts/sign-registry.mjs"
+  },
+  "dependencies": {
+    "tar": "^6.2.1"
+  }
+}

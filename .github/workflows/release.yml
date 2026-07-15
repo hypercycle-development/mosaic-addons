@@ -1,0 +1,91 @@
+name: Release addons
+
+# Triggered on a release tag push (e.g. "stargate-v1.0.0"). Builds every
+# addon whose tarball isn't already published for that tag, assembles
+# addon-registry.json, and signs it — see §6.7 of mosaic-companion's
+# docs/admin/tab-plugin-architecture-design.md for the full design this
+# implements.
+#
+# GO-LIVE TODO (see README.md): this workflow references
+# secrets.ADDON_SIGNING_KEY_<keyId> by name but that secret does not exist
+# yet — a maintainer must generate the real key by hand (scripts/generate-
+# signing-key.cjs, run offline) and add it as a GitHub Actions secret,
+# ideally behind an Environment with required-reviewer protection, before
+# this workflow can run for real. Until then this file is inert scaffolding.
+
+on:
+  push:
+    tags:
+      - "*-v*"
+
+# Restrict the signing step to a protected Environment once one exists, so
+# the job can't be triggered from an arbitrary branch or PR (§6.7).
+# environment: release-signing
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-sign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root tooling
+        run: npm install --no-audit --no-fund
+
+      - name: Determine addon id from tag
+        id: tag
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          ADDON_ID="${TAG%-v*}"
+          echo "addon_id=$ADDON_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Build addon tarball
+        run: node scripts/build-addon.mjs "${{ steps.tag.outputs.addon_id }}"
+
+      - name: Build registry
+        run: |
+          node scripts/build-registry.mjs \
+            --base-url "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}"
+
+      # ── Signing: the ONLY step with access to the private key ───────────
+      # No other job or step in this workflow reads the secret. CI never
+      # generates key material — it only ever uses an already-generated one
+      # (§6.7 "CI integration").
+      - name: Sign registry
+        env:
+          # The key id is a documentation label on the secret name only —
+          # rotate by adding a new ADDON_SIGNING_KEY_<newKeyId> secret and a
+          # new step (or parameterize this once a real key exists); v1 keeps
+          # this a single named secret per the "one active signing key at a
+          # time" scope in §6.7.
+          ADDON_SIGNING_KEY_PLACEHOLDER: ${{ secrets.ADDON_SIGNING_KEY_PLACEHOLDER }}
+        run: |
+          if [ -z "$ADDON_SIGNING_KEY_PLACEHOLDER" ]; then
+            echo "::error::ADDON_SIGNING_KEY_PLACEHOLDER secret is not set — see README.md GO-LIVE TODO. Nothing to sign with; failing rather than shipping an unsigned or test-key-signed registry."
+            exit 1
+          fi
+          node -e "
+            const fs = require('fs');
+            const keyId = process.env.SIGNING_KEY_ID || 'REPLACE_WITH_REAL_KEY_ID';
+            fs.writeFileSync('/tmp/release-signing-key.json', JSON.stringify({
+              keyId,
+              privateKeyPem: process.env.ADDON_SIGNING_KEY_PLACEHOLDER,
+            }));
+          "
+          node scripts/sign-registry.mjs --key /tmp/release-signing-key.json --registry release-build/addon-registry.json
+          rm -f /tmp/release-signing-key.json
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-build/*.tgz
+            release-build/*.sha256
+            release-build/addon-registry.json
+            release-build/addon-registry.json.sig
