@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "addons": [
+    {
+      "id": "hyperinsight",
+      "name": "HyperInsight",
+      "description": "AIM analytics: leaderboard, node profiles, subscriptions, and network stats from HyperInsight",
+      "version": "1.0.0",
+      "minAppVersion": "0.1.7",
+      "tarballUrl": "https://raw.githubusercontent.com/hypercycle-development/mosaic-addons/main/hyperinsight-1.0.0.tgz",
+      "sha256": "4cbb26aa9d1969d4af86b48e70c75d740c8d4f8b0b71c2e69b7917b2ed714165",
+      "permissions": [
+        "nodes:read"
+      ],
+      "icon": "Activity",
+      "homepage": "https://github.com/hypercycle-development/mosaic-addons"
+    },
+    {
+      "id": "stargate",
+      "name": "Stargate",
+      "description": "AI agent marketplace and compute platform",
+      "version": "1.0.0",
+      "minAppVersion": "0.1.7",
+      "tarballUrl": "https://raw.githubusercontent.com/hypercycle-development/mosaic-addons/main/stargate-1.0.0.tgz",
+      "sha256": "ae7a4200559a21ac1fa3f57ddac9f74c5e0bfe51adf99a32b15810834c38ee30",
+      "permissions": [
+        "wallet:read",
+        "agents:read",
+        "agents:write",
+        "mcp:read",
+        "mcp:call",
+        "nodes:read",
+        "shell:open-external"
+      ],
+      "icon": "Layers",
+      "homepage": "https://github.com/hypercycle-development/mosaic-addons"
+    }
+  ]
+}

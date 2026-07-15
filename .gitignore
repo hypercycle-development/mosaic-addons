@@ -4,3 +4,17 @@ dist/
 .DS_Store
 release-build/
 addons/*/renderer/
+
+# TEMPORARY pre-release testing exception — remove once mosaic-addons goes
+# public and switches to real GitHub Releases (see README's GO-LIVE TODO).
+# While the repo is private, a read-only PAT can't create Releases, so the
+# signed registry + built tarballs are committed here at the repo root
+# instead, reachable via raw.githubusercontent.com for testing the real
+# browse-catalogue install flow end to end. Re-run
+# `scripts/build-addon.mjs <id>` + `scripts/build-registry.mjs --base-url
+# https://raw.githubusercontent.com/hypercycle-development/mosaic-addons/main`
+# + `scripts/sign-registry.mjs` and re-copy here whenever an addon changes.
+!/addon-registry.json
+!/addon-registry.json.sig
+!/stargate-1.0.0.tgz
+!/hyperinsight-1.0.0.tgz
