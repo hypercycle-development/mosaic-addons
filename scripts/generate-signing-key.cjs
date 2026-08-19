@@ -3,8 +3,9 @@
  * ONE-OFF key generation script — Ed25519, Node's built-in `crypto` module,
  * no dependencies. This is the exact procedure a maintainer runs BY HAND,
  * OFFLINE, to generate the real `mosaic-addons` production signing key (see
- * §6.7 of mosaic-companion's docs/admin/tab-plugin-architecture-design.md
- * and this repo's README "GO-LIVE TODO").
+ * §6.7 of the internal addon design document
+ * tab-plugin-architecture-design.md, which is HyperCycle-internal and not
+ * published in any public repo, and this repo's README "GO-LIVE TODO").
  *
  * Running this script yourself right now produces a TEST key, not the
  * production one — nothing about running it makes a key "the real one";

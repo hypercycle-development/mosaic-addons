@@ -4,9 +4,10 @@ Addon monorepo for [Mosaic Companion](https://github.com/hypercycle-development/
 manifest-driven addon system. Each directory under `addons/` is one addon:
 a `manifest.json`, an optional main-process module, and a self-contained
 compiled web bundle. Releases are distributed as signed, tarballed GitHub
-Releases listed in `addon-registry.json` — see
-`docs/admin/tab-plugin-architecture-design.md` §6.7 in `mosaic-companion`
-for the full design (registry format, signing, install pipeline).
+Releases listed in `addon-registry.json` — see §6.7 of the internal addon
+design document `tab-plugin-architecture-design.md` (HyperCycle-internal,
+not published) for the full design (registry format, signing, install
+pipeline).
 
 ---
 
@@ -17,8 +18,8 @@ but the following steps still require a human, done by hand, before any real
 user's Mosaic Companion can install an addon from here:
 
 1. **Generate the real signing keypair.** Follow §6.7's custody procedure in
-   `mosaic-companion`'s `docs/admin/tab-plugin-architecture-design.md`
-   *exactly*: a maintainer runs the one-off generation script
+   the internal `tab-plugin-architecture-design.md` (HyperCycle-internal,
+   not published) *exactly*: a maintainer runs the one-off generation script
    (`scripts/generate-signing-key.cjs` in this repo, or an equivalent
    `openssl`/`crypto` invocation) **by hand, offline, once**. Nothing in this
    repo's CI is capable of — or should ever be given the ability to —

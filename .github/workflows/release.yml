@@ -2,9 +2,9 @@ name: Release addons
 
 # Triggered on a release tag push (e.g. "stargate-v1.0.0"). Builds every
 # addon whose tarball isn't already published for that tag, assembles
-# addon-registry.json, and signs it — see §6.7 of mosaic-companion's
-# docs/admin/tab-plugin-architecture-design.md for the full design this
-# implements.
+# addon-registry.json, and signs it — see §6.7 of the internal addon design
+# document tab-plugin-architecture-design.md (HyperCycle-internal, not
+# published) for the full design this implements.
 #
 # GO-LIVE TODO (see README.md): this workflow references
 # secrets.ADDON_SIGNING_KEY_<keyId> by name but that secret does not exist
