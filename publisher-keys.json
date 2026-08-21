@@ -1,1 +1,6 @@
-[]
+[{
+    "keyId": "b7efa29a",
+    "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAQFMN/qcDB6XsW2ZwgV2ee/SYAnmaV2kav3HDLHc/MN4=\n-----END PUBLIC KEY-----\n",
+    "introducedAt": "2026-08-21",
+    "retiredAt": null
+  }]
