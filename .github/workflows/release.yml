@@ -1,22 +1,31 @@
-name: Release addons
+name: Release addon catalogue
 
-# Triggered on a release tag push (e.g. "stargate-v1.0.0"). Builds every
-# addon whose tarball isn't already published for that tag, assembles
-# addon-registry.json, and signs it — see §6.7 of the internal addon design
-# document tab-plugin-architecture-design.md (HyperCycle-internal, not
-# published) for the full design this implements.
+# Triggered by a catalogue release tag ("catalogue-v1", "catalogue-v2", …).
 #
-# GO-LIVE TODO (see README.md): this workflow references
-# secrets.ADDON_SIGNING_KEY_<keyId> by name but that secret does not exist
-# yet — a maintainer must generate the real key by hand (scripts/generate-
-# signing-key.cjs, run offline) and add it as a GitHub Actions secret,
-# ideally behind an Environment with required-reviewer protection, before
-# this workflow can run for real. Until then this file is inert scaffolding.
+# The unit of release is the WHOLE CATALOGUE, not one addon. That is
+# deliberate: `addon-registry.json` is a single signed artifact describing
+# every installable addon, so it has to be built from every addon and
+# published as one set. The previous per-addon tag scheme ("stargate-v1.0.0")
+# built only the tagged addon, and `build-registry.mjs` skips any addon with
+# no tarball in the output directory — so each release published a registry
+# containing exactly one addon and silently delisted all the others.
+#
+# Because every tarball this registry references is uploaded to the SAME
+# release, `--base-url` below is correct for every entry, and the catalogue
+# can never point at an asset that was not published alongside it.
+#
+# GO-LIVE TODO (see README.md): this workflow needs two repository settings
+# that do not exist yet — the secret ADDON_SIGNING_KEY (the Ed25519 private
+# key PEM) and the variable ADDON_SIGNING_KEY_ID (its keyId). A maintainer
+# generates the key by hand, offline, using a ceremony script held outside
+# this repo.
+# Until both exist this workflow fails closed at the signing step rather
+# than publishing anything unsigned.
 
 on:
   push:
     tags:
-      - "*-v*"
+      - "catalogue-v*"
 
 # Restrict the signing step to a protected Environment once one exists, so
 # the job can't be triggered from an arbitrary branch or PR (§6.7).
@@ -38,19 +47,47 @@ jobs:
       - name: Install root tooling
         run: npm install --no-audit --no-fund
 
-      - name: Determine addon id from tag
-        id: tag
+      # Every addon, every time. A catalogue that omits an addon delists it
+      # for every user, so "which addons does this release cover" must not
+      # depend on the tag.
+      # Every addon in the publish set, every time. A catalogue that omits a
+      # published addon delists it for every user, so "which addons does this
+      # release cover" must come from catalogue.json — never from the tag, and
+      # never from whatever happens to be in addons/.
+      - name: Build every published addon tarball
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          ADDON_ID="${TAG%-v*}"
-          echo "addon_id=$ADDON_ID" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          for id in $(node -e "console.log((JSON.parse(require('fs').readFileSync('catalogue.json','utf8')).published||[]).join(' '))"); do
+            echo "::group::build ${id}"
+            node scripts/build-addon.mjs "$id"
+            echo "::endgroup::"
+          done
 
-      - name: Build addon tarball
-        run: node scripts/build-addon.mjs "${{ steps.tag.outputs.addon_id }}"
+      # --require-all turns a skipped addon into a hard failure. Without it
+      # build-registry.mjs only warns, which is how a one-addon registry got
+      # published silently.
+      # The sequence is the tag ordinal: catalogue-v7 -> 7. It MUST strictly
+      # increase, because the app persists the highest sequence it has ever
+      # verified and rejects anything lower. That is what stops an attacker
+      # replaying an older — still validly signed — registry to erase a
+      # withdrawal. Never re-tag a lower number, and never move an existing tag.
+      - name: Derive catalogue sequence from tag
+        id: seq
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF#refs/tags/}"
+          SEQ="${TAG#catalogue-v}"
+          if ! printf '%s' "$SEQ" | grep -Eq '^[1-9][0-9]*$'; then
+            echo "::error::Tag '$TAG' does not carry a positive integer sequence (expected catalogue-vN)."
+            exit 1
+          fi
+          echo "sequence=$SEQ" >> "$GITHUB_OUTPUT"
 
       - name: Build registry
         run: |
           node scripts/build-registry.mjs \
+            --require-all \
+            --sequence "${{ steps.seq.outputs.sequence }}" \
             --base-url "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}"
 
       # ── Signing: the ONLY step with access to the private key ───────────
@@ -59,27 +96,31 @@ jobs:
       # (§6.7 "CI integration").
       - name: Sign registry
         env:
-          # The key id is a documentation label on the secret name only —
-          # rotate by adding a new ADDON_SIGNING_KEY_<newKeyId> secret and a
-          # new step (or parameterize this once a real key exists); v1 keeps
-          # this a single named secret per the "one active signing key at a
-          # time" scope in §6.7.
-          ADDON_SIGNING_KEY_PLACEHOLDER: ${{ secrets.ADDON_SIGNING_KEY_PLACEHOLDER }}
+          ADDON_SIGNING_KEY: ${{ secrets.ADDON_SIGNING_KEY }}
+          ADDON_SIGNING_KEY_ID: ${{ vars.ADDON_SIGNING_KEY_ID }}
         run: |
-          if [ -z "$ADDON_SIGNING_KEY_PLACEHOLDER" ]; then
-            echo "::error::ADDON_SIGNING_KEY_PLACEHOLDER secret is not set — see README.md GO-LIVE TODO. Nothing to sign with; failing rather than shipping an unsigned or test-key-signed registry."
+          set -euo pipefail
+          if [ -z "${ADDON_SIGNING_KEY:-}" ] || [ -z "${ADDON_SIGNING_KEY_ID:-}" ]; then
+            echo "::error::ADDON_SIGNING_KEY secret and/or ADDON_SIGNING_KEY_ID variable are not set — see README.md GO-LIVE TODO. Failing rather than shipping an unsigned or test-key-signed registry."
             exit 1
           fi
+          umask 077
           node -e "
             const fs = require('fs');
-            const keyId = process.env.SIGNING_KEY_ID || 'REPLACE_WITH_REAL_KEY_ID';
             fs.writeFileSync('/tmp/release-signing-key.json', JSON.stringify({
-              keyId,
-              privateKeyPem: process.env.ADDON_SIGNING_KEY_PLACEHOLDER,
+              keyId: process.env.ADDON_SIGNING_KEY_ID,
+              privateKeyPem: process.env.ADDON_SIGNING_KEY,
             }));
           "
           node scripts/sign-registry.mjs --key /tmp/release-signing-key.json --registry release-build/addon-registry.json
           rm -f /tmp/release-signing-key.json
+
+      # Verify what we are about to publish against the signature we just
+      # made, using only the PUBLIC half. A registry that cannot verify here
+      # would fail closed in every installed app, silently — better to find
+      # that in CI.
+      - name: Verify the signed registry before publishing
+        run: node scripts/verify-registry.mjs --registry release-build/addon-registry.json
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2

@@ -1,0 +1,6 @@
+{
+  "_comment": "The publish set. An addon ships because it is named here, never because it exists in addons/. Adding an id publishes it on the next catalogue release; removing an id DELISTS it (stops new installs) but does not disable it for anyone who already has it — that requires an entry in withdrawn.json.",
+  "published": [
+    "hyperinsight"
+  ]
+}

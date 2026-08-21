@@ -13,95 +13,126 @@ pipeline).
 
 ## ⚠️ GO-LIVE TODO — read this before treating anything here as production
 
-**Nothing in this repo is live yet.** It is scaffolded and locally testable,
-but the following steps still require a human, done by hand, before any real
-user's Mosaic Companion can install an addon from here:
+**Nothing in this repo is live yet.** The build/sign/verify pipeline works and
+has been exercised end to end against the test key, but the following still
+require a human before any real user's MosAIc Companion can install an addon
+from here. The full procedure, including rotation and compromise handling, is
+in `docs/signing-procedure.md`.
 
-1. **Generate the real signing keypair.** Follow §6.7's custody procedure in
-   the internal `tab-plugin-architecture-design.md` (HyperCycle-internal,
-   not published) *exactly*: a maintainer runs the one-off generation script
-   (`scripts/generate-signing-key.cjs` in this repo, or an equivalent
-   `openssl`/`crypto` invocation) **by hand, offline, once**. Nothing in this
-   repo's CI is capable of — or should ever be given the ability to —
-   generate key material itself.
-2. **Create the real `mosaic-addons` GitHub repository** (this local repo is
-   not pushed anywhere yet — see the note below) under the
-   `hypercycle-development` org, or wherever the maintainer decides.
-3. **Add the private key as a GitHub Actions secret**, named
-   `ADDON_SIGNING_KEY_<keyId>` (the `<keyId>` is printed by the generation
-   script — first 8 hex chars of `sha256(publicKeyBytes)`), scoped to the
-   release-signing job only. Put it behind a GitHub **Environment** with
-   required-reviewer protection so the signing job can't be triggered from an
-   arbitrary branch or PR.
-4. **Back up the private key offline** (password manager item or a
-   hardware-encrypted USB) — without a backup, losing the CI secret forces an
-   unplanned rotation with no way to sign anything in the interim.
-5. **Pin the real public key** into `mosaic-companion`'s
-   `electron/addons/signing.ts` → `TRUSTED_PUBLISHER_KEYS`, as its own
-   dated entry (`introducedAt` set to the real date/app-version). This is a
-   **separate, later PR** against `mosaic-companion` — do not do this until
-   steps 1–4 are actually done for real. The placeholder/test key currently
-   checked into that array must stay clearly marked as dev/test-only, or be
-   removed from production builds once the real key is in place (per §6.7,
-   it may still stay in dev/test build config for continued local testing of
-   the verify path).
-6. **Push this repo** to its real remote once the above is in place, and
-   confirm the `.github/workflows/release.yml` workflow (already scaffolded
-   here, referencing `secrets.ADDON_SIGNING_KEY_<keyId>` by name — it just
-   needs the real secret to exist) runs cleanly against a real release tag.
+1. **Make this repository public.** GitHub serves release assets of a private
+   repo only to authenticated callers, and the app deliberately carries no
+   credential for the catalogue — so while this repo is private, a correctly
+   signed catalogue at a correct URL is still unreachable. It fails exactly as a
+   missing one does.
+2. **Generate the real signing keypair.** A maintainer performs the key
+   ceremony by hand, offline, once. Nothing in this repo — or in its CI —
+   generates key material, or should ever be given the ability to; CI only
+   ever *uses* a key that already exists. The ceremony itself is held
+   separately and deliberately not published here: it has no audience among
+   people building addons or auditing this pipeline. Maintainers know where
+   it is.
+3. **Add the CI settings**: secret `ADDON_SIGNING_KEY` (the private key PEM) and
+   variable `ADDON_SIGNING_KEY_ID` (its keyId). Put the secret behind a GitHub
+   **Environment** with required-reviewer protection and uncomment
+   `environment: release-signing` in `.github/workflows/release.yml`, so the
+   signing job cannot be triggered from an arbitrary branch or PR.
+4. **Pin the real public key in two places, which must agree**:
+   `publisher-keys.json` here (what CI verifies against before publishing) and
+   `PRODUCTION_PUBLISHER_KEYS` in `mosaic-companion`'s
+   `electron/addons/signing.ts` (what installed apps trust). If they disagree,
+   every installed app fails closed and says only "no catalogue is published
+   yet" — `scripts/verify-registry.mjs` exists to catch that in CI instead.
+   The app-side pin is a **separate, later PR**, and it must ship in an app
+   release *before* the first catalogue is published.
+5. **Cut the first catalogue release**: `git tag catalogue-v1 && git push origin
+   catalogue-v1`, then confirm from a **packaged** build — a dev build also
+   trusts the test keys (`signing.ts:83`) and so proves nothing.
 
-Until all of the above happens, `mosaic-companion` has **no real, working
-registry to install from** — the only way to try any addon in this repo is
-Mosaic's dev-install path (`addons:install-dev`, a local directory) or the
-offline test-registry fixtures described below.
+**Withdrawal does not exist.** Removing an entry from the registry stops new
+installs and nothing else: an already-installed addon keeps running with its
+permissions, and the app never re-fetches on a schedule. Until that is built,
+do not publish a catalogue entry for any addon that can move funds or run
+main-process code. See `docs/signing-procedure.md` §0.
 
-### This repo is currently local-only
+Until the above is done, the only ways to try an addon are MosAIc's dev-install
+path (`addons:install-dev`, a local directory) or the offline test-registry
+fixtures described below.
 
-Per explicit instruction during the Phase 6 build session, this repository
-was created locally at `/Users/robert/Code/HyperCycle/HyperCycle/mosaic-addons`
-and has **not** been pushed anywhere, and no real GitHub repo has been
-created for it. Nothing here should be treated as reachable from the
-internet. All verification against a "registry" during this phase used a
-local, offline HTTP fixture server signed with the test key below — never a
-real URL.
+### Release model: one tag series, whole-catalogue releases
 
----
+The unit of release is the **catalogue**, not an addon. `catalogue-v*` tags
+build every addon under `addons/`, assemble one `addon-registry.json` covering
+all of them, sign it, verify it, and upload it together with every tarball it
+references.
 
-## Test-only signing key (NOT the production key)
-
-`fixtures/test-signing-key.json` holds a keypair generated the same way the
-real one will be (manual, offline, `scripts/generate-signing-key.cjs`), but
-it exists **only** to exercise this repo's build/sign/verify pipeline in
-development and CI. It is deliberately distinct from the *other* placeholder
-key already checked into `mosaic-companion` itself
-(`tests/addons/fixtures/test-signing-key.json`, used there to test the
-app-side verify logic) — that one represents "the app's dev/test
-verification key," this one represents "the mosaic-addons repo's test
-signing key." Keeping them separate avoids a mixup between "what the app
-trusts for local dev" and "what this repo's own test release pipeline
-signs with."
-
-**Never treat either test key as production, never reuse this key's
-material to sign anything that ships to a real user.**
+This replaced a per-addon tag scheme (`stargate-v1.0.0`) that built only the
+tagged addon. Because `build-registry.mjs` skips any addon with no built
+tarball, that scheme published a registry containing exactly one addon and
+silently delisted every other — so releasing Stargate would have removed
+HyperInsight from every user's catalogue, and vice versa. `--require-all` now
+makes that a hard build failure rather than a warning.
 
 ---
+
+## Key material is never committed here
+
+**No private key belongs in this repository, in any form — test keys included.**
+A private key in a repo is a private key on the internet the moment that repo is
+public, and git history keeps it there afterwards. A test key committed "just
+for CI" is indistinguishable, to anyone who finds it, from a real one.
+
+This repo previously carried `fixtures/test-signing-key.json` with its private
+half. It was removed on 2026-08-21, before the repo went public, and
+`.gitignore` now blocks the shape of it.
+
+`publisher-keys.json` holds **public** halves only, and is currently empty —
+which is the correct fail-closed state until the production key exists.
+`scripts/verify-registry.mjs` refuses to pass anything while it is empty.
+
+### Testing the sign/verify path locally
+
+Generate a test keypair with the **same offline ceremony as production** (held
+outside this repo — maintainers know where), keep both halves outside any
+working tree, and point the tooling at them:
+
+```bash
+KEY=<path outside any repo>          # e.g. under $TMPDIR, or removable media
+
+node scripts/build-addon.mjs hyperinsight --out release-build
+node scripts/build-registry.mjs --require-all --out release-build --sequence 1 \
+  --base-url "https://example.invalid/local-test"
+
+# sign-registry wants { keyId, privateKeyPem }; build it from the ceremony output
+node scripts/sign-registry.mjs --key "$KEY.signer.json" \
+  --registry release-build/addon-registry.json
+
+# verify against a pin list holding only the PUBLIC half
+node scripts/verify-registry.mjs --registry release-build/addon-registry.json \
+  --keys "$KEY.pins.json"
+```
+
+Delete both when you are done. To have a **dev build of the app** trust that key,
+set `MOSAIC_DEV_PUBLISHER_KEYS` to the pin list — a packaged build ignores it
+entirely, so it can never widen what a shipped app trusts.
 
 ## Layout
 
 ```
 mosaic-addons/
-  addons/
-    stargate/            — the Stargate addon (manifest, main, renderer source + build)
-    hyperinsight/        — the HyperInsight addon (manifest, main, renderer source + build)
+  addons/                      — every addon that exists here, published or not
+    hyperinsight/              — HyperInsight (manifest, main, renderer source + build)
+    stargate/                  — Stargate; present but NOT in the publish set
+  catalogue.json               — the publish set. An addon ships because it is
+                                 named here, never because it is in addons/
+  withdrawn.json               — withdrawal notices; severity + reason required
   scripts/
-    generate-signing-key.cjs   — one-off key generation (test or real, same procedure)
     build-addon.mjs            — builds one addon's renderer, tars manifest+main+renderer
     build-registry.mjs         — assembles addon-registry.json from built addon tarballs
     sign-registry.mjs          — signs addon-registry.json -> addon-registry.json.sig
-  fixtures/
-    test-signing-key.json      — this repo's own test-only signing key (see above)
+    verify-registry.mjs        — verifies a signed registry against publisher-keys.json
+  publisher-keys.json          — PUBLIC publisher keys; must match the app's pinned list
   .github/workflows/
-    release.yml                — release-tag-triggered build + sign workflow
+    release.yml                — catalogue-tag-triggered build + sign + verify workflow
 ```
 
 ## Building an addon locally
@@ -114,16 +145,14 @@ npm run build          # produces addons/<id>/renderer/ (self-contained static b
 
 ## Building + signing a full registry locally (test key)
 
-```bash
-node scripts/build-addon.mjs stargate
-node scripts/build-addon.mjs hyperinsight
-node scripts/build-registry.mjs --out release-build
-node scripts/sign-registry.mjs --key fixtures/test-signing-key.json --registry release-build/addon-registry.json
-```
+See "Testing the sign/verify path locally" above — the signing key comes from
+the offline ceremony and lives outside this repo, never in `fixtures/`.
 
 `build-registry.mjs` picks up every addon under `addons/` that already has a
 built tarball in `--out` — run `build-addon.mjs` for each addon you want
-included first. This produces `release-build/addon-registry.json`,
+included first. `--require-all` turns a missing one into a hard error instead of
+a warning, which is what release CI passes and what stops a partial catalogue
+being published; drop it for a deliberately partial local build. This produces `release-build/addon-registry.json`,
 `release-build/addon-registry.json.sig`, and one
 `release-build/<id>-<version>.tgz` + its sha256 per addon — the same shape a
 real GitHub Release would publish, servable from a local static file server
