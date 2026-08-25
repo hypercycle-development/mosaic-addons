@@ -5,6 +5,11 @@ dist/
 release-build/
 addons/*/renderer/
 
+# Each addon's runtime data jail (`ctx.paths.data`), created by running the
+# addon, not by building it. `build-addon.mjs` packages manifest.json, main/
+# and renderer/ only, so nothing here has ever been part of a release.
+addons/*/data/
+
 # The signed registry and built tarballs are NOT committed. While the repo was
 # private a read-only PAT couldn't create Releases, so they were committed at
 # the root and served over raw.githubusercontent.com for testing. That stops

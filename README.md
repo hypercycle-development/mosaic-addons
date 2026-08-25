@@ -13,50 +13,59 @@ pipeline).
 
 ## ⚠️ GO-LIVE TODO — read this before treating anything here as production
 
-**Nothing in this repo is live yet.** The build/sign/verify pipeline works and
-has been exercised end to end against the test key, but the following still
-require a human before any real user's MosAIc Companion can install an addon
-from here. The full procedure, including rotation and compromise handling, is
+**The catalogue is not live yet.** The build/sign/verify pipeline works, the
+production signing key exists (`b7efa29a`, generated 2026-08-21 under the
+offline ceremony) and is pinned on both sides, but the following still require
+a human before any real user's MosAIc Companion can install an addon from here.
+The full procedure, including withdrawal, rotation and compromise handling, is
 in `docs/signing-procedure.md`.
 
-1. **Make this repository public.** GitHub serves release assets of a private
+1. **Add the CI settings.** Create a GitHub **Environment** named
+   `release-signing` with required-reviewer protection, and scope both to it:
+   the secret `ADDON_SIGNING_KEY` (the private key PEM) and the *variable*
+   `ADDON_SIGNING_KEY_ID` (its keyId — the workflow reads it as `vars.`, a
+   different namespace from `secrets.`, so entering it as a secret leaves the
+   job failing its own guard with the value sitting right there).
+   `.github/workflows/release.yml` already names the Environment on its job.
+   Use the web UI, not `gh secret set`, which would put the private key in
+   shell history.
+2. **Ship a `mosaic-companion` release carrying the pinned key** — *before*
+   the first catalogue is published. Publishing first means existing users
+   fetch a registry signed by a key they do not yet trust.
+3. **Make this repository public.** GitHub serves release assets of a private
    repo only to authenticated callers, and the app deliberately carries no
    credential for the catalogue — so while this repo is private, a correctly
    signed catalogue at a correct URL is still unreachable. It fails exactly as a
    missing one does.
-2. **Generate the real signing keypair.** A maintainer performs the key
-   ceremony by hand, offline, once. Nothing in this repo — or in its CI —
-   generates key material, or should ever be given the ability to; CI only
-   ever *uses* a key that already exists. The ceremony itself is held
-   separately and deliberately not published here: it has no audience among
-   people building addons or auditing this pipeline. Maintainers know where
-   it is.
-3. **Add the CI settings**: secret `ADDON_SIGNING_KEY` (the private key PEM) and
-   variable `ADDON_SIGNING_KEY_ID` (its keyId). Put the secret behind a GitHub
-   **Environment** with required-reviewer protection and uncomment
-   `environment: release-signing` in `.github/workflows/release.yml`, so the
-   signing job cannot be triggered from an arbitrary branch or PR.
-4. **Pin the real public key in two places, which must agree**:
-   `publisher-keys.json` here (what CI verifies against before publishing) and
-   `PRODUCTION_PUBLISHER_KEYS` in `mosaic-companion`'s
-   `electron/addons/signing.ts` (what installed apps trust). If they disagree,
-   every installed app fails closed and says only "no catalogue is published
-   yet" — `scripts/verify-registry.mjs` exists to catch that in CI instead.
-   The app-side pin is a **separate, later PR**, and it must ship in an app
-   release *before* the first catalogue is published.
-5. **Cut the first catalogue release**: `git tag catalogue-v1 && git push origin
-   catalogue-v1`, then confirm from a **packaged** build — a dev build also
-   trusts the test keys (`signing.ts:83`) and so proves nothing.
+4. **Cut the first catalogue release**: `git tag catalogue-v1 && git push origin
+   catalogue-v1`, then confirm from a **packaged** build. An unpackaged build
+   also trusts whatever `MOSAIC_DEV_PUBLISHER_KEYS` supplies at runtime, so it
+   proves less about what a real user sees.
 
-**Withdrawal does not exist.** Removing an entry from the registry stops new
-installs and nothing else: an already-installed addon keeps running with its
-permissions, and the app never re-fetches on a schedule. Until that is built,
-do not publish a catalogue entry for any addon that can move funds or run
-main-process code. See `docs/signing-procedure.md` §0.
+**Already done, and not to be repeated:** the key ceremony (step 2 of the
+previous version of this list) was performed on 2026-08-21. Nothing in this
+repo — or in its CI — generates key material, or should ever be given the
+ability to; CI only ever *uses* a key that already exists. The ceremony is held
+separately and deliberately not published here. The public half is pinned in
+`publisher-keys.json` here and in `PRODUCTION_PUBLISHER_KEYS` in
+`mosaic-companion`'s `electron/addons/signing.ts`; **those two must agree
+byte for byte**, or every installed app fails closed saying only "no catalogue
+is published yet". `scripts/verify-registry.mjs` catches that in CI instead.
 
-Until the above is done, the only ways to try an addon are MosAIc's dev-install
-path (`addons:install-dev`, a local directory) or the offline test-registry
-fixtures described below.
+**Withdrawal exists** (built 2026-08-21). Removing an entry from the registry
+*delists* it — it stops new installs and nothing else. To act on an addon that
+is already installed, add an entry to `withdrawn.json`: `security` deactivates
+it in place and refuses re-activation, `advisory` leaves it running. Withdrawal
+is carried by the same signed registry and gated on a strictly increasing
+`sequence`, so an attacker cannot erase one by replaying an older release. See
+`docs/signing-procedure.md` §0 for the procedure, including how a withdrawal is
+lifted.
+
+Until the catalogue is live, an addon can be tried through MosAIc's dev-install
+path (`addons:install-dev`, a local directory), or against a locally built and
+locally signed registry — see "Building + signing a full registry locally"
+below, which needs a test key you generate yourself and keep outside every
+working tree.
 
 ### Release model: one tag series, whole-catalogue releases
 
