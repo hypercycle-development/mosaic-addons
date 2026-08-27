@@ -1,0 +1,9 @@
+MosAIc Addons
+Copyright 2026 HyperCycle
+
+Licensed under the Apache License, Version 2.0. See the LICENSE file alongside
+this notice.
+
+That licence and this notice cover the catalogue tooling — `scripts/`,
+`.github/`, `docs/` and the registry and signing machinery. Each add-on under
+`addons/` carries its own licence and its own copyright, held by its author.

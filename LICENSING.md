@@ -57,6 +57,11 @@ in two places:
   [SPDX identifier](https://spdx.org/licenses/) (for example `MIT`,
   `Apache-2.0`, `GPL-3.0-only`)
 
+You may also add a `NOTICE` file naming the copyright holder — Apache-2.0
+expects one, and it is where a copyright line belongs rather than in the
+licence text itself. Both `LICENSE` and `NOTICE` are packaged into the
+distributed tarball, so whoever receives your add-on receives them too.
+
 > **Not yet enforced.** The manifest schema does not currently carry a `license`
 > field, so this cannot be validated or required yet. Until it is, declare the
 > licence in the `LICENSE` file and say so in your pull request. Tracked in

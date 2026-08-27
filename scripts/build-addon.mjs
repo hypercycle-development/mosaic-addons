@@ -47,7 +47,10 @@ if (fs.existsSync(path.join(addonDir, "package.json"))) {
 fs.mkdirSync(outDir, { recursive: true });
 const stagingDir = fs.mkdtempSync(path.join(outDir, `.staging-${addonId}-`));
 
-for (const entry of ["manifest.json", "main", "renderer"]) {
+// LICENSE and NOTICE ship with the tarball, not just the repo: Apache-2.0
+// obliges a redistributor to carry them, and HyperCycle is the redistributor
+// here. Missing ones are skipped below, so an addon without them still builds.
+for (const entry of ["manifest.json", "main", "renderer", "LICENSE", "NOTICE"]) {
   const src = path.join(addonDir, entry);
   if (!fs.existsSync(src)) continue;
   fs.cpSync(src, path.join(stagingDir, entry), { recursive: true });
