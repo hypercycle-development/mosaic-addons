@@ -13,6 +13,11 @@ or a change to the **catalogue tooling**. They are reviewed differently.
 
 ## Contributing an add-on
 
+**[Build an extension](https://github.com/hypercycle-development/mosaic-companion/blob/main/docs/build-an-extension.md)**
+in the application repository is the full guide — what an add-on is, the
+manifest, permissions, and how to run one locally before you submit anything.
+This page is the submission contract.
+
 Submit a pull request adding `addons/<your-id>/`. It must contain:
 
 - `manifest.json` — id, name, description, and the permissions you actually
@@ -20,11 +25,13 @@ Submit a pull request adding `addons/<your-id>/`. It must contain:
   justify to users.
 - `LICENSE` — your licence, your copyright. See
   [LICENSING.md](./LICENSING.md) for which are accepted.
-- Your source. Everything the add-on does should be readable in the diff.
+- Your source. Everything the add-on does should be readable in the files you
+  add.
 
-**The reviewable unit is the patch.** Submissions are assessed from the diff,
-not from a running build, and are built and installed in isolation before
-anything is published.
+**We review the source you submit, not a build of it.** A submission is assessed
+from the files in your pull request — the ones a reviewer can open and read —
+and is then built and installed in isolation before anything is published. A
+minified or obfuscated bundle cannot be reviewed, and will not be.
 
 Some things a submission cannot currently do, and why:
 
@@ -38,6 +45,33 @@ Some things a submission cannot currently do, and why:
   does *not* check: a range is accepted as-is, so pinning comes from your
   committed lockfile rather than from a gate.
 - **Everything must stay inside `addons/<your-id>/`.**
+- **No install lifecycle scripts.** A `package.json` carrying `preinstall`,
+  `install`, `postinstall`, `prepare`, `prepublish`, `prepublishOnly`,
+  `preuninstall` or `postuninstall` runs arbitrary code the moment dependencies
+  are installed. Rejected outright.
+- **No symlinks and no submodules.** Neither can be reviewed by reading the
+  files you submitted.
+- **One logical commit.** A submission is reviewed as a whole, not as a history
+  to reconstruct.
+
+If you have a `package.json`, note what publication does with it: it runs
+`npm install` and then **`npm run build`**, and packages only `manifest.json`,
+`main/`, `renderer/`, `LICENSE` and `NOTICE`. So a `package.json` obliges a
+working `build` script, and `node_modules` is not shipped — whatever your page
+needs has to end up inside `renderer/`.
+
+### Check it yourself first
+
+The deterministic gates above are exactly what `scripts/adjudicate/` runs, and
+you can run it against your own patch before opening the pull request:
+
+```sh
+git format-patch -1 --stdout > mine.patch
+node scripts/adjudicate/adjudicate.mjs --patch mine.patch
+```
+
+Every mechanical rejection on this page is something it will tell you about in
+a few seconds, which is faster than finding out from a review round-trip.
 
 A clean automated result means nothing matched the patterns that are checked.
 It does not mean a submission is safe, and a human decides.
