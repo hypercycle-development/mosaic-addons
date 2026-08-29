@@ -120,7 +120,7 @@ Recorded here so the sequence is visible rather than rediscovered:
 3. **A `license` field in the manifest**, so the declaration is machine-readable
    and can be required — mosaic-companion#138.
 4. **Whatever review a closed-source submission needs**, given the source would
-   not be readable in the diff. The pipeline's whole design assumes it is.
+   not be readable in the files submitted. The pipeline's whole design assumes it is.
 
 Distribution mechanics are *not* on that list. The catalogue already publishes
 built tarballs and references them from a signed registry; source in `addons/`

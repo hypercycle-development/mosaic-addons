@@ -24,7 +24,9 @@ Submit a pull request adding `addons/<your-id>/`. It must contain:
   need. Ask for the minimum; every permission is a thing a reviewer has to
   justify to users.
 - `LICENSE` — your licence, your copyright. See
-  [LICENSING.md](./LICENSING.md) for which are accepted.
+  [LICENSING.md](./LICENSING.md) for which are accepted, and **say which licence
+  you chose in the pull request**: the manifest has no `license` field yet, so
+  the file and your description are the only record.
 - Your source. Everything the add-on does should be readable in the files you
   add.
 
@@ -62,16 +64,29 @@ needs has to end up inside `renderer/`.
 
 ### Check it yourself first
 
-The deterministic gates above are exactly what `scripts/adjudicate/` runs, and
-you can run it against your own patch before opening the pull request:
+`scripts/adjudicate/` runs the deterministic gates, and you can run it against
+your own submission before opening the pull request. **It checks the patch by
+applying it, so it has to run against a checkout that does not already contain
+your commit** — point `--repo` at a clean worktree of `main`:
 
 ```sh
-git format-patch -1 --stdout > mine.patch
-node scripts/adjudicate/adjudicate.mjs --patch mine.patch
+# from your branch, one commit containing your whole submission
+git format-patch main..HEAD --stdout > mine.patch
+git worktree add ../addons-base main
+node scripts/adjudicate/adjudicate.mjs --patch mine.patch --repo ../addons-base
 ```
 
-Every mechanical rejection on this page is something it will tell you about in
-a few seconds, which is faster than finding out from a review round-trip.
+Run against your own checkout it will fail on "already exists in working
+directory" and skip the manifest checks, which is the part most worth having.
+If `git format-patch main..HEAD` gives you more than one commit, squash first —
+one logical commit is a gate in its own right.
+
+It reports `PASS` / `FAIL` per named gate and ends in a verdict. It covers more
+than the list above: path traversal, executable bits, changes to signing or
+tooling paths, and full manifest conformance — `manifestVersion`, the id pattern
+and that `id` equals the directory name, semver, field lengths, `mountPoint`,
+`renderer.entry`, a reserved `ipcNamespace`, and any unknown or **reserved**
+permission. A submission asking for `wallet:sign` is blocked here.
 
 A clean automated result means nothing matched the patterns that are checked.
 It does not mean a submission is safe, and a human decides.
