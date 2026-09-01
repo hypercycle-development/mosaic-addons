@@ -50,22 +50,19 @@ see below.
 ## Which licences are accepted
 
 Today, any [OSI-approved licence](https://opensource.org/licenses). Declare it
-in two places:
+in a `LICENSE` file in `addons/<id>/`, and name it in your pull request — those
+two are the whole record, and the pull request is where a reviewer looks.
 
-- a `LICENSE` file in `addons/<id>/`
-- the `license` field of your `manifest.json`, as an
-  [SPDX identifier](https://spdx.org/licenses/) (for example `MIT`,
-  `Apache-2.0`, `GPL-3.0-only`)
+**There is no `license` field in the manifest.** The schema does not carry one,
+so there is nothing to fill in and nothing that can be validated or required.
+Adding one is tracked as mosaic-companion#138; when it lands, the expectation
+will be an [SPDX identifier](https://spdx.org/licenses/) (`MIT`, `Apache-2.0`,
+`GPL-3.0-only`), and this page will say so.
 
 You may also add a `NOTICE` file naming the copyright holder — Apache-2.0
 expects one, and it is where a copyright line belongs rather than in the
 licence text itself. Both `LICENSE` and `NOTICE` are packaged into the
 distributed tarball, so whoever receives your add-on receives them too.
-
-> **Not yet enforced.** The manifest schema does not currently carry a `license`
-> field, so this cannot be validated or required yet. Until it is, declare the
-> licence in the `LICENSE` file and say so in your pull request. Tracked in
-> mosaic-companion#138.
 
 **Copyleft is unanalysed, and that includes your dependencies.** OSI approval
 covers the GPL family, and the position has not been worked through:

@@ -65,8 +65,8 @@ these, but the distinction is easy to lose, so:
 | Action | Publisher does | Effect on someone who already has it |
 |---|---|---|
 | **Delist** | remove the id from `catalogue.json` | **Nothing.** It keeps working, keeps its permissions, keeps updating within what it has. It simply stops being offered for new installs. |
-| **Withdraw, `advisory`** | `withdrawn.json` entry, `severity: "advisory"` | Keeps working, and **the user is not currently told**: as of app v0.1.12 an advisory withdrawal is recorded and enforced-as-nothing, with no surface in Settings → Add-ons. Treat it as a publisher-side marker, not as a way to reach a user. |
-| **Withdraw, `security`** | `withdrawn.json` entry, `severity: "security"` | Deactivated, refused activation until lifted, and shown in Settings → Add-ons as "Withdrawn by the catalogue publisher: &lt;reason&gt;". |
+| **Withdraw, `advisory`** | `withdrawn.json` entry, `severity: "advisory"` | Keeps working, and **the user is not currently told**: as of app v0.1.12 an advisory withdrawal is recorded and enforced-as-nothing, with no surface in Configuration → Add-ons. Treat it as a publisher-side marker, not as a way to reach a user. |
+| **Withdraw, `security`** | `withdrawn.json` entry, `severity: "security"` | Deactivated, refused activation until lifted, and shown in Configuration → Add-ons as "Withdrawn by the catalogue publisher: &lt;reason&gt;". |
 
 So the default path for retiring an add-on — taking it out of the publish set —
 takes nothing away from anyone. Only an explicit `security` withdrawal does,

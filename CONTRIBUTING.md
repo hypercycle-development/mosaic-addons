@@ -30,6 +30,16 @@ Submit a pull request adding `addons/<your-id>/`. It must contain:
 - Your source. Everything the add-on does should be readable in the files you
   add.
 
+> **Check that `git add` actually took your `renderer/` files.** This
+> repository git-ignores `addons/*/renderer/`, because for an add-on built from
+> a `src/` directory that path is build output produced by the release pipeline.
+> If your add-on has **no build step** and you hand-wrote `renderer/index.html`,
+> `git add addons/<your-id>/` will skip it without saying anything, and you will
+> open a pull request containing a manifest and a licence and no add-on. Run
+> `git status --ignored addons/<your-id>/` before you push, and if your renderer
+> is source rather than output, force it in with
+> `git add -f addons/<your-id>/renderer/` and say so in the pull request.
+
 **We review the source you submit, not a build of it.** A submission is assessed
 from the files in your pull request — the ones a reviewer can open and read —
 and is then built and installed in isolation before anything is published. A
@@ -83,10 +93,19 @@ one logical commit is a gate in its own right.
 
 It reports `PASS` / `FAIL` per named gate and ends in a verdict. It covers more
 than the list above: path traversal, executable bits, changes to signing or
-tooling paths, and full manifest conformance — `manifestVersion`, the id pattern
-and that `id` equals the directory name, semver, field lengths, `mountPoint`,
-`renderer.entry`, a reserved `ipcNamespace`, and any unknown or **reserved**
-permission. A submission asking for `wallet:sign` is blocked here.
+tooling paths, build reproducibility, and full manifest conformance —
+`manifestVersion`, the id pattern and that `id` equals the directory name,
+semver, field lengths, `mountPoint`, `renderer.entry`, a reserved
+`ipcNamespace`, and any unknown or **reserved** permission. A submission asking
+for `wallet:sign` is blocked here.
+
+The reproducibility gate is the one that surprises people, because it depends on
+which build model your add-on uses. `addons/*/renderer/` is git-ignored in this
+repository, so for an add-on with a `src/` directory the bundle is **build
+output** — the release pipeline runs your `npm run build` — and it is correctly
+absent from your patch. If instead your add-on tracks its bundle, changing `src/`
+without regenerating `renderer/` fails the gate, because the artifact that would
+ship no longer matches the source that was reviewed.
 
 A clean automated result means nothing matched the patterns that are checked.
 It does not mean a submission is safe, and a human decides.
