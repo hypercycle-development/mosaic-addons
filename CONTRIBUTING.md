@@ -68,7 +68,11 @@ Some things a submission cannot currently do, and why:
   `preX` and `postX`. That set belongs to npm and it has grown before, so a list
   of forbidden names is a list that a new name walks straight past. Publication
   runs exactly one script from your add-on, `build`, so permitting a short set
-  of ordinary developer names costs you nothing and closes the category.
+  of ordinary developer names costs you nothing.
+
+  **This governs script *names*, not what they do.** Your `build` command is
+  still arbitrary, still runs when we package your add-on, and is still read by
+  a person. Nothing here replaces that reading.
 
   If you genuinely need a name that is not on the list, say why in the pull
   request. The list grows on purpose, not by accident.
