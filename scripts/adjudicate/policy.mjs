@@ -66,11 +66,34 @@ export const SENSITIVE_PATH_PATTERNS = [
   { re: /^package(-lock)?\.json$/, why: "root repo tooling manifest" },
 ];
 
-// npm lifecycle script names that run code on `npm install` — an addon must
-// never ship these (arbitrary code execution at install). Hard failure.
+// The complete set of `scripts` keys an addon's package.json may declare.
+//
+// This is an ALLOWLIST, and that is the whole point. npm decides which script
+// names it runs by itself at install time, not us, and it has more of them than
+// are obvious: for any script X it also runs `preX` before and `postX` after.
+// A denylist of "dangerous" names has to enumerate a set npm controls and can
+// extend, and an unlisted name is then safe by default — which is exactly
+// backwards. Measured on npm 11: `preinstall`, `install`, `postinstall`,
+// `preprepare`, `prepare`, `postprepare` and `prepublish` all execute on a
+// plain `npm install`, in a package with no dependencies and no `prepare`
+// script. The previous denylist here held five of those seven.
+//
+// The need is small enough that inverting costs nothing real: scripts/build-addon.mjs
+// runs exactly one script from a submitted addon, `build`. Everything else below
+// is author convenience that the pipeline never invokes. An addon needing a name
+// that is not here should say why in its pull request, and this list should grow
+// deliberately rather than a submission slipping past because npm invented a
+// hook we had not heard of.
+export const ALLOWED_ADDON_SCRIPTS = [
+  "build", "dev", "test", "lint", "typecheck", "format", "clean", "watch", "preview",
+];
+
+// Kept only to make a rejection message more useful: if the offending name is
+// one of these, the submitter gets told it executes on install rather than just
+// that it is not permitted. Never used as the check itself — see above.
 export const INSTALL_LIFECYCLE_SCRIPTS = [
-  "preinstall", "install", "postinstall", "prepare", "prepublish",
-  "prepublishOnly", "preuninstall", "postuninstall",
+  "preinstall", "install", "postinstall", "preprepare", "prepare", "postprepare",
+  "prepublish", "prepublishOnly", "preuninstall", "postuninstall",
 ];
 
 // A dependency specifier that is not a plain semver/range from the registry
