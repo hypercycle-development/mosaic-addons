@@ -91,9 +91,15 @@ export const ALLOWED_ADDON_SCRIPTS = [
 // Kept only to make a rejection message more useful: if the offending name is
 // one of these, the submitter gets told it executes on install rather than just
 // that it is not permitted. Never used as the check itself — see above.
+//
+// These are exactly the names measured to run on a plain `npm install` (npm 11).
+// `prepublishOnly`, `preuninstall` and `postuninstall` are deliberately NOT here:
+// they do not run on install, and telling a submitter otherwise is its own small
+// false statement. They are still refused — by not being on the allowlist.
 export const INSTALL_LIFECYCLE_SCRIPTS = [
-  "preinstall", "install", "postinstall", "preprepare", "prepare", "postprepare",
-  "prepublish", "prepublishOnly", "preuninstall", "postuninstall",
+  "preinstall", "install", "postinstall",
+  "preprepare", "prepare", "postprepare",
+  "prepublish",
 ];
 
 // A dependency specifier that is not a plain semver/range from the registry

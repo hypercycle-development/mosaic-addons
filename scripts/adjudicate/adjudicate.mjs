@@ -242,8 +242,28 @@ function main() {
   if (resolvedDir && pkgPaths.length) {
     let scriptViol = [], depViol = [], newDeps = [];
     for (const rel of pkgPaths) {
-      const pkg = readJsonMaybe(path.join(resolvedDir, rel));
-      if (!pkg) continue;
+      const abs = path.join(resolvedDir, rel);
+      // Fail CLOSED on a package.json that is present but will not parse.
+      // `readJsonMaybe` returning null used to `continue`, which reported PASS
+      // — and npm is more forgiving than JSON.parse, so the two disagree on
+      // real files. A UTF-8 BOM is the cheap case: `JSON.parse` throws on
+      // "\uFEFF{", npm strips it and runs the scripts inside. Anything we
+      // cannot read is a thing we cannot clear.
+      // A file the patch DELETES is absent here and is not a violation.
+      const pkg = readJsonMaybe(abs);
+      if (!pkg) {
+        if (fs.existsSync(abs)) {
+          scriptViol.push(`${rel}: unreadable — must be valid JSON with no byte-order mark`);
+        }
+        continue;
+      }
+      // null/absent both mean "no scripts", which is what npm does with them.
+      // A string, number or array is neither, and Object.keys() on one would
+      // silently produce nonsense — refuse rather than guess.
+      if (pkg.scripts != null && (typeof pkg.scripts !== "object" || Array.isArray(pkg.scripts))) {
+        scriptViol.push(`${rel}: "scripts" must be an object`);
+        continue;
+      }
       // Allowlist, not denylist: anything npm might decide to run by itself is
       // refused because it was never permitted, rather than because someone
       // remembered to name it. See ALLOWED_ADDON_SCRIPTS in policy.mjs.
