@@ -31,9 +31,20 @@ affects the exit code). The queue *is* the agenda for Stage 6 — nothing more.
 | 1 | Scope containment | any path outside one `addons/<id>/`; touches registry/sig/CI/tooling; exec bit / symlink / submodule |
 | 2 | Applies | `git apply --check` fails on the base checkout |
 | 3 | Manifest conformance | mirrors the app's `validateManifest` policy subset: bad id/version/namespace, or a permission that is unknown or **reserved** (`wallet:sign`, `vault:*`, …) |
-| 4 | Supply chain | an install lifecycle script (`postinstall`, …) in the addon's own `package.json`; any dependency specifier that is not a plain registry range — git and tarball URLs, local and workspace paths, `github:`, bare `user/repo`, and `npm:` aliases |
+| 4 | Supply chain | **any `scripts` key in the addon's own `package.json` that is not on the allowlist** — `ALLOWED_ADDON_SCRIPTS` in `policy.mjs`, currently build, dev, test, lint, typecheck, format, clean, watch, preview; any dependency specifier that is not a plain registry range — git and tarball URLs, local and workspace paths, `github:`, bare `user/repo`, and `npm:` aliases |
 | 4b | Build reproducibility | convention-aware: if `renderer/` is gitignored build output (the mosaic-addons model), an absent bundle is correct and this instead flags that a sandboxed build (Stage 7) is required; it only *fails* when the repo tracks bundles and `src/` changed without a matching bundle update |
 | 5 | Capability scan | never fails — emits the judgment queue |
+
+> **Stage 4 is an allowlist, and must stay one.** npm chooses which script
+> names it runs by itself, and for any script `X` it also runs `preX` and
+> `postX`. A denylist of dangerous names is a list of a set npm controls, where
+> anything unlisted is safe by default. That failed exactly as you would expect:
+> the previous denylist named `prepare` but not `preprepare`/`postprepare`, both
+> of which execute on a plain `npm install` — so a submission carrying one got
+> `VERDICT: PASS`. **Do not "fix" a future gap by adding a name to
+> `INSTALL_LIFECYCLE_SCRIPTS`**; that list is now only used to word the
+> rejection message. Add to `ALLOWED_ADDON_SCRIPTS`, deliberately, when a
+> submission gives a reason.
 
 ### Stage 6 — judgment (human/LLM)
 

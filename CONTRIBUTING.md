@@ -57,10 +57,25 @@ Some things a submission cannot currently do, and why:
   does *not* check: a range is accepted as-is, so pinning comes from your
   committed lockfile rather than from a gate.
 - **Everything must stay inside `addons/<your-id>/`.**
-- **No install lifecycle scripts.** A `package.json` carrying `preinstall`,
-  `install`, `postinstall`, `prepare`, `prepublish`, `prepublishOnly`,
-  `preuninstall` or `postuninstall` runs arbitrary code the moment dependencies
-  are installed. Rejected outright.
+- **Your `package.json` may only declare script names from a fixed list.**
+  Currently: `build`, `dev`, `test`, `lint`, `typecheck`, `format`, `clean`,
+  `watch`, `preview`. **Anything else is rejected outright**, including names
+  that look harmless.
+
+  This is an allowlist rather than a list of banned names, and deliberately so.
+  npm decides for itself which script names it executes when dependencies are
+  installed — nobody has to run them — and for any script `X` it also runs
+  `preX` and `postX`. That set belongs to npm and it has grown before, so a list
+  of forbidden names is a list that a new name walks straight past. Publication
+  runs exactly one script from your add-on, `build`, so permitting a short set
+  of ordinary developer names costs you nothing.
+
+  **This governs script *names*, not what they do.** Your `build` command is
+  still arbitrary, still runs when we package your add-on, and is still read by
+  a person. Nothing here replaces that reading.
+
+  If you genuinely need a name that is not on the list, say why in the pull
+  request. The list grows on purpose, not by accident.
 - **No symlinks and no submodules.** Neither can be reviewed by reading the
   files you submitted.
 - **One logical commit.** A submission is reviewed as a whole, not as a history

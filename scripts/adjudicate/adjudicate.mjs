@@ -36,7 +36,7 @@ import {
   PERMISSION_VOCABULARY, RESERVED_PERMISSIONS, RESERVED_IPC_NAMESPACES,
   ID_PATTERN, IPC_NAMESPACE_PATTERN, MAX_NAME_LENGTH, MAX_DESCRIPTION_LENGTH,
   MAX_TAB_LABEL_LENGTH, SEMVER_RE, SENSITIVE_PATH_PATTERNS,
-  INSTALL_LIFECYCLE_SCRIPTS, NON_REGISTRY_DEP_RE, SCAN_CATEGORIES, URL_RE,
+  ALLOWED_ADDON_SCRIPTS, INSTALL_LIFECYCLE_SCRIPTS, NON_REGISTRY_DEP_RE, SCAN_CATEGORIES, URL_RE,
   MAIN_ENTRY_ALLOWLIST,
 } from "./policy.mjs";
 
@@ -242,10 +242,39 @@ function main() {
   if (resolvedDir && pkgPaths.length) {
     let scriptViol = [], depViol = [], newDeps = [];
     for (const rel of pkgPaths) {
-      const pkg = readJsonMaybe(path.join(resolvedDir, rel));
-      if (!pkg) continue;
-      for (const s of INSTALL_LIFECYCLE_SCRIPTS)
-        if (pkg.scripts && pkg.scripts[s]) scriptViol.push(`${rel}: scripts.${s}`);
+      const abs = path.join(resolvedDir, rel);
+      // Fail CLOSED on a package.json that is present but will not parse.
+      // `readJsonMaybe` returning null used to `continue`, which reported PASS
+      // — and npm is more forgiving than JSON.parse, so the two disagree on
+      // real files. A UTF-8 BOM is the cheap case: `JSON.parse` throws on
+      // "\uFEFF{", npm strips it and runs the scripts inside. Anything we
+      // cannot read is a thing we cannot clear.
+      // A file the patch DELETES is absent here and is not a violation.
+      const pkg = readJsonMaybe(abs);
+      if (!pkg) {
+        if (fs.existsSync(abs)) {
+          scriptViol.push(`${rel}: unreadable — must be valid JSON with no byte-order mark`);
+        }
+        continue;
+      }
+      // null/absent both mean "no scripts", which is what npm does with them.
+      // A string, number or array is neither, and Object.keys() on one would
+      // silently produce nonsense — refuse rather than guess.
+      if (pkg.scripts != null && (typeof pkg.scripts !== "object" || Array.isArray(pkg.scripts))) {
+        scriptViol.push(`${rel}: "scripts" must be an object`);
+        continue;
+      }
+      // Allowlist, not denylist: anything npm might decide to run by itself is
+      // refused because it was never permitted, rather than because someone
+      // remembered to name it. See ALLOWED_ADDON_SCRIPTS in policy.mjs.
+      for (const name of Object.keys(pkg.scripts || {})) {
+        if (ALLOWED_ADDON_SCRIPTS.includes(name)) continue;
+        const runsOnInstall = INSTALL_LIFECYCLE_SCRIPTS.includes(name);
+        scriptViol.push(
+          `${rel}: scripts.${name}` +
+          (runsOnInstall ? " (executes on npm install)" : " (not a permitted script name)"),
+        );
+      }
       for (const field of ["dependencies", "devDependencies", "optionalDependencies"]) {
         for (const [name, spec] of Object.entries(pkg[field] || {})) {
           if (typeof spec === "string" && NON_REGISTRY_DEP_RE.test(spec)) depViol.push(`${rel}: ${name}@${spec}`);
@@ -253,7 +282,13 @@ function main() {
         }
       }
     }
-    gate("4 supply-chain: no install lifecycle scripts", scriptViol.length === 0, scriptViol.join("; "));
+    gate(
+      "4 supply-chain: only permitted script names",
+      scriptViol.length === 0,
+      scriptViol.length
+        ? `${scriptViol.join("; ")} — permitted: ${ALLOWED_ADDON_SCRIPTS.join(", ")}`
+        : "",
+    );
     gate("4 supply-chain: all deps from the registry", depViol.length === 0, depViol.join("; "));
     if (newDeps.length) notes.push(`Declared deps (judge legitimacy): ${newDeps.join(", ")}`);
   } else {
