@@ -25,6 +25,8 @@ export const PERMISSION_VOCABULARY = [
   "nodes:read",
   "shell:open-external",
   "buckets:publish",
+  "media:camera",
+  "media:microphone",
 ];
 
 /** Named so the strings are stable, but REJECTED at install in v1. Declaring
