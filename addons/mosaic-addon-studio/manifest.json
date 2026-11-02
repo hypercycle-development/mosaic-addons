@@ -1,0 +1,36 @@
+{
+  "manifestVersion": 1,
+  "id": "mosaic-addon-studio",
+  "version": "0.1.0",
+  "name": "Mosaic Add-on Studio",
+  "description": "Author, validate and review Mosaic Companion add-ons from inside the app.",
+  "author": "BitSempre",
+  "homepage": "https://github.com/BitSempre/mosaic-addons",
+  "minAppVersion": "0.1.13",
+
+  "ipcNamespace": "mosaic-addon-studio",
+  "mountPoint": "tab",
+
+  "tab": {
+    "label": "Studio",
+    "icon": "Code2",
+    "order": 90
+  },
+
+  "renderer": {
+    "entry": "renderer/index.html"
+  },
+
+  "permissions": [],
+
+  "updates": {
+    "checkMode": "manual"
+  },
+
+  "linkVisibilityToActivation": true,
+
+  "buckets": {
+    "publishes": [],
+    "reads": []
+  }
+}
