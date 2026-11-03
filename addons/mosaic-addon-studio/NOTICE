@@ -1,0 +1,16 @@
+Mosaic Add-on Studio
+Copyright 2026 The Mosaic Add-on Studio authors
+
+Licensed under the MIT License. See the LICENSE file alongside this notice.
+
+This add-on bundles the following third-party software:
+
+- React (MIT License) — https://react.dev
+- React DOM (MIT License) — https://react.dev
+- Lucide React (ISC License) — https://lucide.dev
+- semver (ISC License) — https://github.com/npm/node-semver
+
+The Mosaic application facts in `shared/mosaic-app-reference.data.mjs` are
+derived from the Mosaic Companion source at the revision stated in that
+file's provenance block, and are used to check an add-on against what the
+application actually implements.
