@@ -1,0 +1,27 @@
+{
+  "manifestVersion": 1,
+  "id": "fleet-manager",
+  "version": "1.1.0",
+  "name": "Fleet Manager",
+  "description": "HyperCycle node fleet management: liveness, endpoint diagnostics, automatic monitoring, ALIVE/DEAD alerts, Explorer and Tilling data.",
+  "author": "BitSempre",
+  "homepage": "https://github.com/BitSempre/mosaic-addons",
+  "minAppVersion": "0.1.13",
+  "ipcNamespace": "fleet-manager",
+  "mountPoint": "tab",
+  "tab": {
+    "label": "Fleet Manager",
+    "icon": "Server",
+    "order": 80
+  },
+  "renderer": {
+    "entry": "renderer/index.html"
+  },
+  "permissions": [
+    "nodes:read",
+    "shell:open-external"
+  ],
+  "updates": {
+    "checkMode": "manual"
+  }
+}
