@@ -1,0 +1,78 @@
+/* Fleet Manager — isolado do renderer host do Mosaic (tab nativa ou addon). */
+.fleet-manager-root,
+.fleet-manager-root * {
+  box-sizing: border-box;
+}
+
+.fleet-manager-root {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.45;
+  isolation: isolate;
+  color: #e2e8f0;
+  background: #07090d;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.fleet-manager-root button,
+.fleet-manager-root input,
+.fleet-manager-root select,
+.fleet-manager-root textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.fleet-manager-root button {
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+}
+
+.fleet-manager-root input::placeholder,
+.fleet-manager-root textarea::placeholder {
+  color: rgb(100 116 139 / 0.8);
+}
+
+.fleet-manager-root table {
+  border-collapse: collapse;
+}
+
+.fleet-manager-root main,
+.fleet-manager-root .fm-scroll {
+  overflow: auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.fleet-manager-root nav,
+.fleet-manager-root aside {
+  flex-shrink: 0;
+}
+
+.fleet-manager-root section,
+.fleet-manager-root .rounded-2xl,
+.fleet-manager-root .rounded-xl {
+  background-clip: padding-box;
+}
+
+.fleet-manager-root input,
+.fleet-manager-root select,
+.fleet-manager-root textarea {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+html.fleet-manager-html,
+html.fleet-manager-html body,
+html.fleet-manager-html #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #07090d;
+}
